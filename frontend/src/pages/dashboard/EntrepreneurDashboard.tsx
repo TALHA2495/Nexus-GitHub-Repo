@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Bell, Calendar, TrendingUp, AlertCircle, PlusCircle } from 'lucide-react';
+import { Users, Bell, Calendar, TrendingUp, AlertCircle, PlusCircle, BrainCircuit } from 'lucide-react';
+import axios from 'axios';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -15,7 +16,10 @@ export const EntrepreneurDashboard: React.FC = () => {
   const { user } = useAuth();
   const [collaborationRequests, setCollaborationRequests] = useState<CollaborationRequest[]>([]);
   const [recommendedInvestors, setRecommendedInvestors] = useState(investors.slice(0, 3));
-  
+  const [pitchText, setPitchText] = useState('');
+  const [aiResults, setAiResults] = useState<string | null>(null);
+  const [isAIAnalyzing, setIsAIAnalyzing] = useState(false);
+
   useEffect(() => {
     if (user) {
       // Load collaboration requests
@@ -23,19 +27,37 @@ export const EntrepreneurDashboard: React.FC = () => {
       setCollaborationRequests(requests);
     }
   }, [user]);
-  
+
   const handleRequestStatusUpdate = (requestId: string, status: 'accepted' | 'rejected') => {
-    setCollaborationRequests(prevRequests => 
-      prevRequests.map(req => 
+    setCollaborationRequests(prevRequests =>
+      prevRequests.map(req =>
         req.id === requestId ? { ...req, status } : req
       )
     );
   };
-  
+
+  const handleAIAnalysis = async () => {
+    if (!pitchText) return;
+    setIsAIAnalyzing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('http://localhost:5000/api/ai/analyze-pitch',
+        { pitch: pitchText },
+        { headers: { 'x-auth-token': token } }
+      );
+      setAiResults(response.data.analysis);
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.details || error.response?.data?.error || error.response?.data?.message || error.message;
+      setAiResults(`Error: ${errorMsg}`);
+    } finally {
+      setIsAIAnalyzing(false);
+    }
+  };
+
   if (!user) return null;
-  
+
   const pendingRequests = collaborationRequests.filter(req => req.status === 'pending');
-  
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
@@ -43,7 +65,7 @@ export const EntrepreneurDashboard: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Welcome, {user.name}</h1>
           <p className="text-gray-600">Here's what's happening with your startup today</p>
         </div>
-        
+
         <Link to="/investors">
           <Button
             leftIcon={<PlusCircle size={18} />}
@@ -52,7 +74,7 @@ export const EntrepreneurDashboard: React.FC = () => {
           </Button>
         </Link>
       </div>
-      
+
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary-50 border border-primary-100">
@@ -68,7 +90,7 @@ export const EntrepreneurDashboard: React.FC = () => {
             </div>
           </CardBody>
         </Card>
-        
+
         <Card className="bg-secondary-50 border border-secondary-100">
           <CardBody>
             <div className="flex items-center">
@@ -84,7 +106,7 @@ export const EntrepreneurDashboard: React.FC = () => {
             </div>
           </CardBody>
         </Card>
-        
+
         <Card className="bg-accent-50 border border-accent-100">
           <CardBody>
             <div className="flex items-center">
@@ -98,7 +120,7 @@ export const EntrepreneurDashboard: React.FC = () => {
             </div>
           </CardBody>
         </Card>
-        
+
         <Card className="bg-success-50 border border-success-100">
           <CardBody>
             <div className="flex items-center">
@@ -113,16 +135,62 @@ export const EntrepreneurDashboard: React.FC = () => {
           </CardBody>
         </Card>
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Collaboration requests */}
         <div className="lg:col-span-2 space-y-4">
+          {/* AI Pitch Analysis Section */}
+          <Card className="border-primary-200 shadow-sm overflow-hidden">
+            <CardHeader className="bg-primary-50 border-b border-primary-100 flex items-center">
+              <BrainCircuit size={20} className="text-primary-600 mr-2" />
+              <h2 className="text-lg font-bold text-primary-900">AI VC Pitch Analysis</h2>
+            </CardHeader>
+            <CardBody className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Enter your startup pitch for AI evaluation
+                </label>
+                <textarea
+                  className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none text-gray-800"
+                  rows={5}
+                  placeholder="Example: We are building a decentralized marketplace for sustainable energy credits..."
+                  value={pitchText}
+                  onChange={(e) => setPitchText(e.target.value)}
+                />
+              </div>
+
+              <Button
+                onClick={handleAIAnalysis}
+                isLoading={isAIAnalyzing}
+                fullWidth
+                variant="primary"
+                className="shadow-md"
+              >
+                Analyze with AI Agent
+              </Button>
+
+              {aiResults && (
+                <div id="ai-results" className="mt-4 animate-scale-in">
+                  <div className="p-5 bg-white border border-secondary-200 rounded-lg shadow-inner">
+                    <h3 className="text-sm font-bold text-secondary-800 uppercase tracking-wider mb-3 flex items-center">
+                      <TrendingUp size={16} className="mr-2" />
+                      VC Analysis Result
+                    </h3>
+                    <div className="text-gray-700 leading-relaxed whitespace-pre-wrap prose prose-sm max-w-none">
+                      {aiResults}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+
           <Card>
             <CardHeader className="flex justify-between items-center">
               <h2 className="text-lg font-medium text-gray-900">Collaboration Requests</h2>
               <Badge variant="primary">{pendingRequests.length} pending</Badge>
             </CardHeader>
-            
+
             <CardBody>
               {collaborationRequests.length > 0 ? (
                 <div className="space-y-4">
@@ -146,7 +214,7 @@ export const EntrepreneurDashboard: React.FC = () => {
             </CardBody>
           </Card>
         </div>
-        
+
         {/* Recommended investors */}
         <div className="space-y-4">
           <Card>
@@ -156,7 +224,7 @@ export const EntrepreneurDashboard: React.FC = () => {
                 View all
               </Link>
             </CardHeader>
-            
+
             <CardBody className="space-y-4">
               {recommendedInvestors.map(investor => (
                 <InvestorCard
