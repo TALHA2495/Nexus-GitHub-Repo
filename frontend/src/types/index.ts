@@ -79,3 +79,17 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
 }
+
+export interface Meeting {
+  _id: string;
+  entrepreneur: {
+    _id: string;
+    name: string;
+    startupName?: string;
+  };
+  investor: string | { _id: string; name: string };
+  title: string;
+  scheduledDate: string;
+  status: 'pending' | 'confirmed' | 'rejected' | 'completed';
+  meetingLink: string;
+}

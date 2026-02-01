@@ -30,12 +30,16 @@ import { DealsPage } from './pages/deals/DealsPage';
 // Chat Pages
 import { ChatPage } from './pages/chat/ChatPage';
 
+// Meeting Components
+import { ScheduleMeetingPage } from './pages/meeting/ScheduleMeetingPage';
+import { VideoCall } from './components/meeting/VideoCall';
+
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           {/* Authentication Routes */}
           <Route path="/login" element={<LoginPage />} />
@@ -91,6 +95,12 @@ function App() {
             <Route path="/chat" element={<DashboardLayout />}>
               <Route index element={<ChatPage />} />
               <Route path=":userId" element={<ChatPage />} />
+            </Route>
+
+            {/* Meeting Routes */}
+            <Route path="/meeting">
+              <Route path="schedule/:investorId" element={<ScheduleMeetingPage />} />
+              <Route path="video/:meetingId" element={<VideoCall />} />
             </Route>
           </Route>
 

@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
+import { io } from 'socket.io-client';
+import toast, { Toaster } from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
@@ -7,6 +9,28 @@ import { Sidebar } from './Sidebar';
 export const DashboardLayout: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Connect to socket server
+    const socket = io('http://localhost:5000');
+
+    // Register user with their socket
+    socket.emit('register-user', user.id);
+
+    // Listen for new meeting requests
+    socket.on('new-meeting-request', (meetingData) => {
+      toast.success(
+        `New meeting request from ${meetingData.entrepreneur?.name || 'an entrepreneur'}!`,
+        { duration: 5000 }
+      );
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user]);
 
   if (isLoading) {
     return (
@@ -27,6 +51,7 @@ export const DashboardLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Toaster position="top-right" />
       <Navbar />
 
       <div className="flex-1 flex overflow-hidden">
